@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File2QR Pro — Convierte Archivos y Enlaces en Códigos QR</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Configuración personalizada de Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos base y transiciones suaves */
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .drop-zone-active {
+            border-color: #4f46e5 !important;
+            background-color: #eef2ff !important;
+            transform: scale(1.01);
+        }
+
+        /* Cuadrícula sutil de fondo para el área de vista previa del QR */
+        .qr-canvas-bg {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+
+        /* Personalización de inputs de color */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        /* Animación para el toast */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast-enter {
+            animation: slideUp 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-brand-100 selection:text-brand-900">
+
+    <!-- Barra de Navegación -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-sm shadow-brand-600/20">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">File2QR<span class="text-brand-600">Pro</span></span>
+                    <span class="hidden sm:inline-block ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">v2.0</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="toggleModal('howItWorksModal')" class="text-sm font-medium text-slate-600 hover:text-brand-600 px-3 py-2 rounded-lg hover:bg-slate-50 transition flex items-center gap-1.5">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">¿Cómo funciona?</span>
+                </button>
+                <button onclick="toggleModal('backendModal')" class="text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="server" class="w-4 h-4"></i>
+                    <span>Guía Producción</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Encabezado y Banner Educativo -->
+        <div class="mb-8">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Convierte cualquier archivo o enlace en un Código QR
+            </h1>
+            <p class="mt-2 text-slate-600 max-w-3xl text-sm sm:text-base">
+                Sube documentos, imágenes, PDFs o audios. Nuestro motor inteligente detecta el tamaño del archivo para incrustarlo directamente sin conexión o generar un acceso rápido en la nube.
+            </p>
+        </div>
+
+        <!-- Grid Principal: Izquierda (Entrada y Configuración) | Derecha (Vista Previa y Descarga) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- COLUMNA IZQUIERDA (7 columnas en desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Tarjeta 1: Selector de Origen (Subir Archivo vs Enlace Nube) -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- Pestañas de Modo -->
+                    <div class="flex border-b border-slate-200 bg-slate-50/70 p-1.5 gap-1.5">
+                        <button id="tab-file" onclick="switchInputMode('file')" class="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition bg-white text-brand-600 shadow-sm border border-slate-200/60">
+                            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                            Subir Archivo Local
+                        </button>
+                        <button id="tab-url" onclick="switchInputMode('url')" class="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 hover:bg-white/50">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                            Enlace Público (Drive / Nube)
+                        </button>
+                    </div>
+
+                    <!-- CONTENIDO PESTAÑA 1: SUBIR ARCHIVO (DRAG & DROP) -->
+                    <div id="panel-file" class="p-6">
+                        <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 hover:border-brand-500 hover:bg-slate-50/80 group relative">
+                            <input type="file" id="fileInput" class="hidden" />
+                            
+                            <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                <i data-lucide="file-up" class="w-7 h-7"></i>
+                            </div>
+                            
+                            <h3 class="text-base font-semibold text-slate-900">
+                                Arrastra y suelta tu archivo aquí
+                            </h3>
+                            <p class="text-sm text-slate-500 mt-1">
+                                o <span class="text-brand-600 font-medium underline">explora en tu dispositivo</span>
+                            </p>
+                            <p class="text-xs text-slate-400 mt-3">
+                                Soporta PDF, JPG, PNG, MP3, DOCX, TXT, ZIP y cualquier formato
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta de Información del Archivo Subido (Oculta inicialmente) -->
+                        <div id="fileInfoCard" class="hidden mt-5 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-center gap-3.5 min-w-0">
+                                    <div id="fileIconContainer" class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center shrink-0">
+                                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p id="fileNameDisplay" class="text-sm font-bold text-slate-900 truncate">documento.pdf</p>
+                                        <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
+                                            <span id="fileSizeDisplay" class="font-mono bg-white px-2 py-0.5 rounded border border-slate-200">0 KB</span>
+                                            <span id="fileTypeDisplay" class="truncate max-w-[180px]">application/pdf</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="clearFile()" class="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition" title="Quitar archivo">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+
+                            <!-- Alerta Inteligente según tamaño del archivo -->
+                            <div id="smartModeAlert" class="mt-4 pt-3.5 border-t border-slate-200/80 text-xs">
+                                <!-- Se llena dinámicamente con JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENIDO PESTAÑA 2: ENLACE PÚBLICO -->
+                    <div id="panel-url" class="p-6 hidden space-y-4">
+                        <div>
+                            <label for="cloudUrlInput" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                Pega el enlace público de tu archivo
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i data-lucide="globe" class="w-4 h-4"></i>
+                                </div>
+                                <input type="url" id="cloudUrlInput" placeholder="https://drive.google.com/file/d/..." 
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                    oninput="handleUrlInput(this.value)">
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">
+                                Ideal para archivos pesados alojados en Google Drive, Dropbox, OneDrive, WeTransfer o tu propio servidor. Asegúrate de que los permisos estén en <strong>"Cualquier persona con el enlace"</strong>.
+                            </p>
+                        </div>
+
+                        <!-- Botones rápidos de ejemplo -->
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            <span class="text-xs font-medium text-slate-400">Probar ejemplo:</span>
+                            <button type="button" onclick="setExampleUrl('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md transition">
+                                PDF Público
+                            </button>
+                            <button type="button" onclick="setExampleUrl('https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md transition">
+                                Enlace Google Drive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 2: Personalización del Código QR -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-brand-600"></i>
+                            <h2 class="text-base font-bold text-slate-900">Personalización y Calidad</h2>
+                        </div>
+                        <button onclick="resetCustomization()" class="text-xs font-medium text-slate-500 hover:text-brand-600 transition">
+                            Restablecer valores
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <!-- Color de los puntos (Primer plano) -->
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                            <div>
+                                <label for="fgColor" class="block text-xs font-semibold text-slate-700">Color del Código</label>
+                                <span id="fgColorHex" class="text-xs font-mono text-slate-500 uppercase">#0F172A</span>
+                            </div>
+                            <input type="color" id="fgColor" value="#0f172a" onchange="updateQR()">
+                        </div>
+
+                        <!-- Color de fondo -->
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                            <div>
+                                <label for="bgColor" class="block text-xs font-semibold text-slate-700">Color de Fondo</label>
+                                <span id="bgColorHex" class="text-xs font-mono text-slate-500 uppercase">#FFFFFF</span>
+                            </div>
+                            <input type="color" id="bgColor" value="#ffffff" onchange="updateQR()">
+                        </div>
+
+                        <!-- Resolución / Tamaño -->
+                        <div>
+                            <label for="qrSize" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Resolución de Descarga (PNG)
+                            </label>
+                            <select id="qrSize" onchange="updateQR()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="256">256 × 256 px (Web / Pantalla)</option>
+                                <option value="512" selected>512 × 512 px (Estándar HD)</option>
+                                <option value="1024">1024 × 1024 px (Impresión Alta Calidad)</option>
+                            </select>
+                        </div>
+
+                        <!-- Nivel de Corrección de Errores -->
+                        <div>
+                            <label for="qrCorrection" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Corrección de Errores
+                            </label>
+                            <select id="qrCorrection" onchange="updateQR()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="L">Nivel L (7% — Mayor capacidad de datos)</option>
+                                <option value="M" selected>Nivel M (15% — Equilibrado)</option>
+                                <option value="Q">Nivel Q (25% — Alta fiabilidad)</option>
+                                <option value="H">Nivel H (30% — Máxima resistencia)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner Informativo Técnico Compacto -->
+                <div class="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 flex gap-3.5 items-start">
+                    <div class="text-amber-600 mt-0.5 shrink-0">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-xs text-amber-900 leading-relaxed">
+                        <strong class="font-semibold block text-amber-950 mb-0.5">¿Cómo almacena un código QR tus archivos?</strong>
+                        Por estándar internacional, un QR almacena hasta <strong>~2.9 KB</strong> de texto. Si subes un archivo pequeño (&lt; 2 KB), lo incrustamos directamente dentro del QR (funciona 100% sin internet). Para archivos pesados (PDFs, fotos, audios), generamos una <strong>ficha de descarga instantánea</strong> lista para compartir o enlazar a tu nube.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COLUMNA DERECHA (5 columnas en desktop): Vista Previa Sticky -->
+            <div class="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- Header Vista Previa -->
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <span class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Vista Previa en Tiempo Real
+                        </span>
+                        <span id="qrModeBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+                            Esperando archivo
+                        </span>
+                    </div>
+
+                    <!-- Contenedor Visual del QR -->
+                    <div class="p-8 qr-canvas-bg flex flex-col items-center justify-center min-h-[320px] relative">
+                        
+                        <!-- Marco blanco alrededor del QR para asegurar margen silencioso (Quiet Zone) -->
+                        <div id="qrWrapper" class="bg-white p-4 rounded-2xl shadow-md border border-slate-200/80 transition-all duration-300 flex items-center justify-center">
+                            <!-- Aquí se renderiza el canvas/img visible -->
+                            <div id="qrcodeDisplay" class="flex items-center justify-center"></div>
+                        </div>
+
+                        <!-- Contenedor oculto para generar el QR en alta resolución exacta -->
+                        <div id="qrcodeHiddenHighRes" class="hidden"></div>
+
+                        <!-- Capacidad / Estado de lectura -->
+                        <div id="qrStatusText" class="mt-4 text-center max-w-xs">
+                            <p class="text-xs font-medium text-slate-500">
+                                Escanea este código con la cámara de tu teléfono para probarlo al instante.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Vista Previa de Tarjeta Simulada (Solo visible en Modo 2: Archivos grandes) -->
+                    <div id="simulatedCloudCard" class="hidden mx-6 mb-5 p-4 rounded-xl bg-indigo-50/70 border border-indigo-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1">
+                                <i data-lucide="cloud" class="w-3.5 h-3.5"></i> Ficha de Alojamiento Simulado
+                            </span>
+                            <button onclick="openPreviewPage()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
+                                Ver página destino <i data-lucide="external-link" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-600 mb-2">
+                            El QR apunta a esta página de descarga temporal con los metadatos de tu archivo:
+                        </p>
+                        <div class="bg-white px-3 py-2 rounded-lg border border-indigo-100 font-mono text-[11px] text-slate-700 truncate" id="generatedTargetUrl">
+                            https://file2qr.app/d/demo...
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="p-6 bg-slate-50 border-t border-slate-200/80 space-y-3">
+                        <button onclick="downloadQR()" class="w-full py-3.5 px-5 bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-sm shadow-brand-600/20 transition flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                            Descargar Código QR (PNG)
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="copyQRImage()" class="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-700 font-medium text-sm rounded-xl border border-slate-300 transition flex items-center justify-center gap-2">
+                                <i data-lucide="image" class="w-4 h-4 text-slate-500"></i>
+                                Copiar Imagen
+                            </button>
+                            <button onclick="copyPayloadText()" class="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-700 font-medium text-sm rounded-xl border border-slate-300 transition flex items-center justify-center gap-2">
+                                <i data-lucide="copy" class="w-4 h-4 text-slate-500"></i>
+                                Copiar Enlace/Dato
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <p>File2QR Pro — Procesamiento local seguro en el navegador. Tus archivos privados nunca salen de tu equipo sin tu permiso.</p>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleModal('howItWorksModal')" class="hover:text-slate-900 transition">Límites técnicos QR</button>
+                <button onclick="toggleModal('backendModal')" class="hover:text-slate-900 transition">Arquitectura Backend</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: ¿CÓMO FUNCIONA? (EXPLICACIÓN TÉCNICA PARA EL USUARIO)       -->
+    <!-- ===================================================================== -->
+    <div id="howItWorksModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+                    <i data-lucide="cpu" class="w-5 h-5 text-brand-600"></i>
+                    ¿Cómo funciona la conversión de archivos a QR?
+                </h3>
+                <button onclick="toggleModal('howItWorksModal')" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-sm text-slate-600 max-h-[75vh] overflow-y-auto">
+                <p>
+                    Un código QR es esencialmente una matriz visual que codifica texto. Dependiendo del tamaño del archivo que subas, nuestra aplicación aplica automáticamente dos estrategias:
+                </p>
+
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <h4 class="font-bold text-emerald-900 flex items-center gap-2 mb-1">
+                        <i data-lucide="wifi-off" class="w-4 h-4"></i>
+                        Modo 1: Incrustación Directa (Archivos &lt; 2 KB)
+                    </h4>
+                    <p class="text-xs text-emerald-800 leading-relaxed">
+                        Si subes un archivo de texto plano, JSON, CSV o un micro-archivo menor a <strong>2,000 bytes</strong>, codificamos su contenido real (o Data URL) directamente dentro de los píxeles del QR. <strong>No requiere internet ni servidores</strong> para leerse.
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-200">
+                    <h4 class="font-bold text-indigo-900 flex items-center gap-2 mb-1">
+                        <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                        Modo 2: Enlace de Descarga / Nube (Archivos &gt; 2 KB)
+                    </h4>
+                    <p class="text-xs text-indigo-800 leading-relaxed">
+                        Un PDF, fotografía o audio pesa cientos de kilobytes o megabytes, lo cual excede la capacidad física de cualquier código QR estándar (máximo 2,953 bytes). Para estos casos:
+                    </p>
+                    <ul class="list-disc list-inside text-xs text-indigo-800 mt-2 space-y-1">
+                        <li>Puedes pegar el enlace público de <strong>Google Drive, Dropbox o OneDrive</strong>.</li>
+                        <li>O usar nuestro <strong>Simulador de Alojamiento</strong> que genera una tarjeta de descarga interactiva con los datos del archivo.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="toggleModal('howItWorksModal')" class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: GUÍA DE DESPLIEGUE EN PRODUCCIÓN (BACKEND REAL)              -->
+    <!-- ===================================================================== -->
+    <div id="backendModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+                    <i data-lucide="terminal" class="w-5 h-5 text-brand-600"></i>
+                    Conectar a un Backend Real en Producción
+                </h3>
+                <button onclick="toggleModal('backendModal')" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-sm text-slate-600 max-h-[75vh] overflow-y-auto">
+                <p>
+                    Actualmente esta aplicación funciona <strong>100% en el navegador (Frontend)</strong> sin requerir base de datos. Si deseas que cualquier usuario suba archivos pesados y se hospeden automáticamente en tu propio servidor:
+                </p>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Arquitectura Recomendada:</h4>
+                    <ol class="list-decimal list-inside space-y-1.5 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <li><strong>Almacenamiento (Storage):</strong> Usa AWS S3, Cloudflare R2, Firebase Storage o Supabase Storage para guardar el archivo binario.</li>
+                        <li><strong>API Backend (Node.js + Express + Multer):</strong> Crea un endpoint <code>POST /api/upload</code> que reciba el <code>FormData</code>, lo suba al bucket y devuelva una URL pública corta (ej. <code>https://tudominio.com/f/abc123</code>).</li>
+                        <li><strong>Conexión con este Frontend:</strong> Reemplaza la función simulada <code>processLargeFile()</code> por una petición <code>fetch('/api/upload', { method: 'POST', body: formData })</code> y pasa la URL devuelta a <code>generateQR(data.url)</code>.</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <span class="block text-xs font-bold text-slate-700 mb-1.5">Ejemplo rápido en Node.js / Express:</span>
+                    <pre class="bg-slate-900 text-slate-100 p-3.5 rounded-xl text-xs font-mono overflow-x-auto leading-relaxed">app.post('/api/upload', upload.single('file'), async (req, res) => {
+  const publicUrl = await uploadToCloudStorage(req.file);
+  res.json({ success: true, downloadUrl: publicUrl });
+});</pre>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="toggleModal('backendModal')" class="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition">
+                    Cerrar Guía
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 3: VISTA PREVIA DE LA TARJETA DESTINO (SIMULACIÓN DE DESCARGA)  -->
+    <!-- ===================================================================== -->
+    <div id="destinationPreviewModal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden text-center">
+            <div class="bg-gradient-to-br from-brand-600 to-indigo-800 p-6 text-white relative">
+                <button onclick="toggleModal('destinationPreviewModal')" class="absolute top-4 right-4 text-white/70 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                <div class="w-16 h-16 bg-white/15 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20">
+                    <i data-lucide="file-check-2" class="w-8 h-8 text-white"></i>
+                </div>
+                <span class="text-[11px] uppercase tracking-widest font-semibold text-indigo-200">Archivo Compartido vía QR</span>
+                <h3 id="previewModalFileName" class="font-bold text-lg mt-1 truncate px-2">archivo.pdf</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-center gap-3 text-xs text-slate-500">
+                    <span id="previewModalFileSize" class="bg-slate-100 px-3 py-1 rounded-full font-mono">1.4 MB</span>
+                    <span id="previewModalFileType" class="bg-slate-100 px-3 py-1 rounded-full">PDF</span>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Así es como vería el destinatario la tarjeta de descarga al escanear tu código QR en un entorno conectado a la nube.
+                </p>
+                <button onclick="triggerLocalBlobDownload()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    Descargar Archivo Original
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificación Toast Flotante -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ===================================================================== -->
+    <!-- LÓGICA DE APLICACIÓN EN JAVASCRIPT                                    -->
+    <!-- ===================================================================== -->
+    <script>
+        // Inicializar iconos de Lucide
+        lucide.createIcons();
+
+        // Estado global de la aplicación
+        const state = {
+            inputMode: 'file', // 'file' o 'url'
+            currentPayload: 'https://file2qr.app/bienvenido', // Dato codificado actualmente en el QR
+            qrMode: 'default', // 'default' | 'direct_embedded' | 'cloud_simulated' | 'custom_url'
+            uploadedFile: null,
+            localBlobUrl: null,
+            fgColor: '#0f172a',
+            bgColor: '#ffffff',
+            size: 512,
+            correctLevel: 'M'
+        };
+
+        // Límite seguro en bytes para codificar contenido directo dentro de un QR estándar
+        const MAX_DIRECT_QR_BYTES = 2000;
+
+        // Referencias al DOM
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const qrcodeDisplay = document.getElementById('qrcodeDisplay');
+        const qrcodeHiddenHighRes = document.getElementById('qrcodeHiddenHighRes');
+
+        // ---------------------------------------------------------------------
+        // 1. INICIALIZACIÓN Y RENDERIZADO DEL CÓDIGO QR
+        // ---------------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            renderQR();
+        });
+
+        /**
+         * Mapea el nivel de corrección de errores de texto a constantes de QRCodeJS
+         */
+        function getCorrectionLevelEnum(levelStr) {
+            const map = {
+                'L': QRCode.CorrectLevel.L,
+                'M': QRCode.CorrectLevel.M,
+                'Q': QRCode.CorrectLevel.Q,
+                'H': QRCode.CorrectLevel.H
+            };
+            return map[levelStr] || QRCode.CorrectLevel.M;
+        }
+
+        /**
+         * Genera tanto la vista previa visible (220px) como el canvas de alta resolución
+         */
+        function renderQR() {
+            // Leer configuraciones actuales
+            state.fgColor = document.getElementById('fgColor').value;
+            state.bgColor = document.getElementById('bgColor').value;
+            state.size = parseInt(document.getElementById('qrSize').value, 10);
+            state.correctLevel = document.getElementById('qrCorrection').value;
+
+            // Actualizar etiquetas hexadecimales
+            document.getElementById('fgColorHex').textContent = state.fgColor.toUpperCase();
+            document.getElementById('bgColorHex').textContent = state.bgColor.toUpperCase();
+
+            // Ajustar el fondo del marco contenedor para que coincida con el color de fondo del QR
+            const qrWrapper = document.getElementById('qrWrapper');
+            qrWrapper.style.backgroundColor = state.bgColor;
+
+            // Limpiar contenedores anteriores
+            qrcodeDisplay.innerHTML = '';
+            qrcodeHiddenHighRes.innerHTML = '';
+
+            try {
+                // 1. Renderizar vista previa en pantalla (tamaño fijo cómodo para UI)
+                new QRCode(qrcodeDisplay, {
+                    text: state.currentPayload,
+                    width: 220,
+                    height: 220,
+                    colorDark: state.fgColor,
+                    colorLight: state.bgColor,
+                    correctLevel: getCorrectionLevelEnum(state.correctLevel)
+                });
+
+                // 2. Renderizar versión oculta en la resolución exacta seleccionada (256, 512 o 1024)
+                new QRCode(qrcodeHiddenHighRes, {
+                    text: state.currentPayload,
+                    width: state.size,
+                    height: state.size,
+                    colorDark: state.fgColor,
+                    colorLight: state.bgColor,
+                    correctLevel: getCorrectionLevelEnum(state.correctLevel)
+                });
+
+                updateUIBadges();
+            } catch (error) {
+                console.error("Error generando QR:", error);
+                showToast("El contenido es demasiado extenso para este nivel de corrección. Prueba cambiar a Nivel L.", "error");
+            }
+        }
+
+        function updateQR() {
+            renderQR();
+        }
+
+        /**
+         * Actualiza las insignias y textos descriptivos según el modo activo
+         */
+        function updateUIBadges() {
+            const badge = document.getElementById('qrModeBadge');
+            const simulatedCard = document.getElementById('simulatedCloudCard');
+            const statusText = document.getElementById('qrStatusText');
+
+            simulatedCard.classList.add('hidden');
+
+            switch (state.qrMode) {
+                case 'direct_embedded':
+                    badge.textContent = 'Modo 1: Incrustado Offline';
+                    badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800';
+                    statusText.innerHTML = `<p class="text-xs text-emerald-700 font-medium">¡Contenido incrustado directamente! Este QR funciona sin conexión a internet.</p>`;
+                    break;
+
+                case 'cloud_simulated':
+                    badge.textContent = 'Modo 2: Enlace Nube (Demo)';
+                    badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800';
+                    simulatedCard.classList.remove('hidden');
+                    document.getElementById('generatedTargetUrl').textContent = state.currentPayload;
+                    statusText.innerHTML = `<p class="text-xs text-slate-500">QR generado con ficha de descarga rápida (${state.size}×${state.size} px).</p>`;
+                    break;
+
+                case 'custom_url':
+                    badge.textContent = 'Enlace Directo Nube';
+                    badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-100 text-sky-800';
+                    statusText.innerHTML = `<p class="text-xs text-slate-600">Apunta directamente a tu enlace público configurado.</p>`;
+                    break;
+
+                default:
+                    badge.textContent = 'Vista Previa Lista';
+                    badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600';
+                    statusText.innerHTML = `<p class="text-xs text-slate-500">Sube un archivo o pega un enlace para personalizar tu QR.</p>`;
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 2. MANEJO DE PESTAÑAS (ARCHIVO VS URL)
+        // ---------------------------------------------------------------------
+        function switchInputMode(mode) {
+            state.inputMode = mode;
+            const tabFile = document.getElementById('tab-file');
+            const tabUrl = document.getElementById('tab-url');
+            const panelFile = document.getElementById('panel-file');
+            const panelUrl = document.getElementById('panel-url');
+
+            if (mode === 'file') {
+                tabFile.className = 'flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition bg-white text-brand-600 shadow-sm border border-slate-200/60';
+                tabUrl.className = 'flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 hover:bg-white/50';
+                panelFile.classList.remove('hidden');
+                panelUrl.classList.add('hidden');
+                
+                if (state.uploadedFile) {
+                    processUploadedFile(state.uploadedFile);
+                }
+            } else {
+                tabUrl.className = 'flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition bg-white text-brand-600 shadow-sm border border-slate-200/60';
+                tabFile.className = 'flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 hover:bg-white/50';
+                panelUrl.classList.remove('hidden');
+                panelFile.classList.add('hidden');
+
+                const urlVal = document.getElementById('cloudUrlInput').value.trim();
+                if (urlVal) {
+                    handleUrlInput(urlVal);
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 3. DRAG & DROP Y PROCESAMIENTO INTELIGENTE DE ARCHIVOS
+        // ---------------------------------------------------------------------
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drop-zone-active');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drop-zone-active');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drop-zone-active');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFileSelection(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelection(file) {
+            state.uploadedFile = file;
+            if (state.localBlobUrl) {
+                URL.revokeObjectURL(state.localBlobUrl);
+            }
+            state.localBlobUrl = URL.createObjectURL(file);
+            processUploadedFile(file);
+        }
+
+        /**
+         * Evalúa el tamaño y tipo de archivo para decidir entre Modo 1 (Incrustación) o Modo 2 (Nube)
+         */
+        function processUploadedFile(file) {
+            // Mostrar tarjeta de información del archivo
+            const fileInfoCard = document.getElementById('fileInfoCard');
+            fileInfoCard.classList.remove('hidden');
+
+            document.getElementById('fileNameDisplay').textContent = file.name;
+            document.getElementById('fileSizeDisplay').textContent = formatBytes(file.size);
+            document.getElementById('fileTypeDisplay').textContent = file.type || 'Archivo binario';
+
+            // Actualizar icono según tipo de archivo
+            updateFileIcon(file.type, file.name);
+
+            const smartModeAlert = document.getElementById('smartModeAlert');
+
+            // MODO 1: Archivo muy pequeño (< 2 KB) -> Incrustación directa
+            if (file.size <= MAX_DIRECT_QR_BYTES) {
+                const reader = new FileReader();
+                
+                // Si es texto plano, leemos el texto directo; si no, Data URL
+                const isText = file.type.startsWith('text/') || /\.(txt|json|csv|md|xml|svg)$/i.test(file.name);
+                
+                reader.onload = function(event) {
+                    const result = event.target.result;
+                    // Verificar que la longitud de caracteres quepa holgadamente en un QR
+                    if (result.length <= 2200) {
+                        state.currentPayload = result;
+                        state.qrMode = 'direct_embedded';
+                        
+                        smartModeAlert.innerHTML = `
+                            <div class="flex items-start gap-2 text-emerald-800">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                                <div>
+                                    <span class="font-bold">Modo 1 Activado (Incrustación Directa):</span>
+                                    Tu archivo pesa menos de 2 KB, por lo que hemos guardado su contenido completo dentro del código QR. Al escanearlo se leerá al instante sin necesidad de internet.
+                                </div>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                        renderQR();
+                        showToast("Archivo codificado directamente en el QR", "success");
+                    } else {
+                        // Si en Base64 supera los 2200 chars, pasamos a Modo 2
+                        activateCloudSimulatedMode(file, smartModeAlert);
+                    }
+                };
+
+                if (isText) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsDataURL(file);
+                }
+            } 
+            // MODO 2: Archivo normal o grande (> 2 KB)
+            else {
+                activateCloudSimulatedMode(file, smartModeAlert);
+            }
+        }
+
+        /**
+         * Configura el Modo 2 para archivos mayores a 2 KB
+         */
+        function activateCloudSimulatedMode(file, alertContainer) {
+            state.qrMode = 'cloud_simulated';
+            
+            // Generamos un enlace de demostración realista con los parámetros del archivo
+            const slug = Math.random().toString(36).substring(2, 8);
+            const encodedName = encodeURIComponent(file.name);
+            const simulatedUrl = `https://file2qr.app/s/${slug}?file=${encodedName}&size=${file.size}`;
+            
+            state.currentPayload = simulatedUrl;
+
+            alertContainer.innerHTML = `
+                <div class="space-y-2.5 text-slate-700">
+                    <div class="flex items-start gap-2 text-indigo-900">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="font-bold">Modo 2 Activado (Ficha de Descarga Inteligente):</span>
+                            Como el archivo pesa <strong>${formatBytes(file.size)}</strong> (supera los 2 KB físicos de un QR), hemos generado un enlace de demostración para tu archivo.
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button type="button" onclick="openPreviewPage()" class="text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Probar tarjeta de descarga
+                        </button>
+                        <button type="button" onclick="switchInputMode('url')" class="text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg transition">
+                            Usar mi enlace de Drive/Nube
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+            renderQR();
+            showToast("QR generado con ficha de descarga rápida", "info");
+        }
+
+        function clearFile() {
+            state.uploadedFile = null;
+            fileInput.value = '';
+            document.getElementById('fileInfoCard').classList.add('hidden');
+            state.currentPayload = 'https://file2qr.app/bienvenido';
+            state.qrMode = 'default';
+            renderQR();
+        }
+
+        // ---------------------------------------------------------------------
+        // 4. MANEJO DE ENLACE PÚBLICO (NUBE)
+        // ---------------------------------------------------------------------
+        function handleUrlInput(value) {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                state.currentPayload = 'https://file2qr.app/bienvenido';
+                state.qrMode = 'default';
+            } else {
+                state.currentPayload = trimmed;
+                state.qrMode = 'custom_url';
+            }
+            renderQR();
+        }
+
+        function setExampleUrl(url) {
+            const input = document.getElementById('cloudUrlInput');
+            input.value = url;
+            handleUrlInput(url);
+            showToast("Enlace de ejemplo cargado", "info");
+        }
+
+        // ---------------------------------------------------------------------
+        // 5. DESCARGA Y COPIADO AL PORTAPAPELES
+        // ---------------------------------------------------------------------
+        function downloadQR() {
+            const canvas = qrcodeHiddenHighRes.querySelector('canvas');
+            const img = qrcodeHiddenHighRes.querySelector('img');
+
+            let dataUrl = '';
+            if (canvas) {
+                dataUrl = canvas.toDataURL('image/png');
+            } else if (img && img.src) {
+                dataUrl = img.src;
+            } else {
+                showToast("No se pudo obtener la imagen del QR", "error");
+                return;
+            }
+
+            // Crear enlace temporal de descarga
+            const link = document.createElement('a');
+            const baseName = state.uploadedFile 
+                ? state.uploadedFile.name.replace(/\.[^/.]+$/, "") 
+                : 'codigo-qr';
+            
+            link.download = `${baseName}-QR-${state.size}px.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast(`QR descargado en ${state.size}×${state.size} px`, "success");
+        }
+
+        async function copyQRImage() {
+            const canvas = qrcodeHiddenHighRes.querySelector('canvas');
+            if (!canvas) {
+                showToast("Genera un QR primero para copiar la imagen", "error");
+                return;
+            }
+
+            try {
+                canvas.toBlob(async (blob) => {
+                    if (navigator.clipboard && window.ClipboardItem) {
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        await navigator.clipboard.write([item]);
+                        showToast("Imagen QR copiada al portapapeles", "success");
+                    } else {
+                        showToast("Tu navegador no soporta copiar imágenes directamente. Usa el botón Descargar.", "info");
+                    }
+                });
+            } catch (err) {
+                showToast("No se pudo copiar la imagen en este entorno. Usa Descargar PNG.", "info");
+            }
+        }
+
+        function copyPayloadText() {
+            // Método compatible con iframes y navegadores modernos
+            const textArea = document.createElement("textarea");
+            textArea.value = state.currentPayload;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast("Enlace/contenido copiado al portapapeles", "success");
+            } catch (err) {
+                showToast("No se pudo copiar el texto", "error");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // ---------------------------------------------------------------------
+        // 6. UTILIDADES DE INTERFAZ, MODALES Y VISTA PREVIA DESTINO
+        // ---------------------------------------------------------------------
+        function resetCustomization() {
+            document.getElementById('fgColor').value = '#0f172a';
+            document.getElementById('bgColor').value = '#ffffff';
+            document.getElementById('qrSize').value = '512';
+            document.getElementById('qrCorrection').value = 'M';
+            renderQR();
+            showToast("Estilos restablecidos", "info");
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+        }
+
+        function openPreviewPage() {
+            if (!state.uploadedFile) return;
+            document.getElementById('previewModalFileName').textContent = state.uploadedFile.name;
+            document.getElementById('previewModalFileSize').textContent = formatBytes(state.uploadedFile.size);
+            document.getElementById('previewModalFileType').textContent = state.uploadedFile.type || 'Archivo';
+            toggleModal('destinationPreviewModal');
+        }
+
+        function triggerLocalBlobDownload() {
+            if (!state.localBlobUrl || !state.uploadedFile) return;
+            const a = document.createElement('a');
+            a.href = state.localBlobUrl;
+            a.download = state.uploadedFile.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("Descargando copia local del archivo...", "success");
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        function updateFileIcon(mimeType, fileName) {
+            const container = document.getElementById('fileIconContainer');
+            let iconName = 'file';
+            
+            if (mimeType.startsWith('image/')) iconName = 'image';
+            else if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) iconName = 'file-text';
+            else if (mimeType.startsWith('audio/')) iconName = 'music';
+            else if (mimeType.startsWith('video/')) iconName = 'video';
+            else if (mimeType.includes('zip') || mimeType.includes('compressed')) iconName = 'archive';
+            else if (mimeType.startsWith('text/')) iconName = 'file-code';
+
+            container.innerHTML = `<i data-lucide="${iconName}" class="w-6 h-6"></i>`;
+            lucide.createIcons();
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-slate-900 text-white border-emerald-500/40',
+                error: 'bg-red-600 text-white border-red-400',
+                info: 'bg-slate-800 text-white border-slate-700'
+            };
+
+            const icons = {
+                success: 'check-circle',
+                error: 'alert-circle',
+                info: 'info'
+            };
+
+            toast.className = `toast-enter pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i data-lucide="${icons[type]}" class="w-4 h-4 shrink-0"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                toast.style.transition = 'all 0.2s ease';
+                setTimeout(() => toast.remove(), 200);
+            }, 3200);
+        }
+
+        // Cerrar modales al hacer clic fuera del cuadro
+        window.addEventListener('click', (e) => {
+            ['howItWorksModal', 'backendModal', 'destinationPreviewModal'].forEach(id => {
+                const modal = document.getElementById(id);
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

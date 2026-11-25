@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Documentos subidos e índice de metadatos (datos de usuario, nunca al repositorio)
+storage/
+
+# Configuración local (puede contener URLs privadas)
+.env
+
+# Registros y archivos del sistema
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Ajustes locales de Claude Code
+.claude/settings.local.json

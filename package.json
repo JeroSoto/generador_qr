@@ -1,0 +1,41 @@
+{
+  "name": "generador-qr-office",
+  "version": "1.0.0",
+  "description": "Generador de códigos QR para documentos de Microsoft Office y otros formatos de oficina. Un servidor Node.js aloja el archivo y el QR lleva a una página de descarga.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JeroSoto/generador_qr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JeroSoto/generador_qr/issues"
+  },
+  "homepage": "https://github.com/JeroSoto/generador_qr#readme",
+  "keywords": [
+    "qr",
+    "office",
+    "word",
+    "excel",
+    "powerpoint",
+    "express",
+    "nodejs"
+  ],
+  "author": "JeroSoto",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.1.0",
+    "multer": "^2.0.2",
+    "qrcode": "^1.5.4"
+  }
+}

@@ -1,0 +1,52 @@
+# Peticiones de ejemplo para la extensión REST Client de VS Code (humao.rest-client).
+# Con el servidor en marcha (npm start), pulsa "Send Request" encima de cada bloque.
+
+@base = http://localhost:3000
+
+### Estado del servidor
+GET {{base}}/api/health
+
+### Configuración pública (formatos, límites, URL base de los QR)
+GET {{base}}/api/config
+
+### Subir un documento
+# Cambia la ruta de la línea "<" por la de un documento real de tu equipo.
+POST {{base}}/api/documents
+Content-Type: multipart/form-data; boundary=----QrOfficeBoundary
+
+------QrOfficeBoundary
+Content-Disposition: form-data; name="file"; filename="ejemplo.docx"
+Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+
+< ./ejemplo.docx
+------QrOfficeBoundary--
+
+### Variables para las siguientes peticiones (copia los valores de la respuesta anterior)
+@id = PEGA_AQUI_EL_ID
+@token = PEGA_AQUI_EL_DELETE_TOKEN
+
+### Metadatos de un documento
+GET {{base}}/api/documents/{{id}}
+
+### QR del documento en PNG
+GET {{base}}/api/documents/{{id}}/qr?size=512&ecc=M&margin=4
+
+### QR del documento en SVG, forzando la descarga
+GET {{base}}/api/documents/{{id}}/qr?format=svg&fg=1F5FBF&download=1
+
+### QR de un enlace externo (OneDrive, SharePoint, Google Drive…)
+POST {{base}}/api/qr
+Content-Type: application/json
+
+{
+  "text": "https://contoso.sharepoint.com/:w:/g/EjemploDeEnlace",
+  "format": "svg",
+  "size": 512,
+  "ecc": "Q",
+  "fg": "#0F172A",
+  "bg": "#FFFFFF"
+}
+
+### Eliminar un documento
+DELETE {{base}}/api/documents/{{id}}
+X-Delete-Token: {{token}}

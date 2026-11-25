@@ -1,0 +1,225 @@
+/* ==========================================================================
+   QR Office · página de descarga (la que se abre al escanear el QR)
+   Pensada primero para el móvil.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #f0f3f9;
+  --border: #e1e6ef;
+  --text: #0f172a;
+  --text-2: #42506a;
+  --text-3: #5b6880;
+  --accent: #1f5fbf;
+  --accent-hover: #184c99;
+  --accent-soft: #e7effb;
+  --on-accent: #ffffff;
+  --warning: #9a4a05;
+  --warning-soft: #fdf2df;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0b1120;
+    --surface: #121a2c;
+    --surface-2: #19233a;
+    --border: #25314a;
+    --text: #e7ecf5;
+    --text-2: #b1bdd2;
+    --text-3: #8795ae;
+    --accent: #6aa5ff;
+    --accent-hover: #8ab8ff;
+    --accent-soft: #172a4a;
+    --on-accent: #0b1120;
+    --warning: #f5b45b;
+    --warning-soft: #33240f;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.55 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.share {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.card {
+  padding: 24px 20px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 8px 28px rgb(15 23 42 / 0.07);
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card__title {
+  min-width: 0;
+}
+
+.card h1 {
+  font-size: 19px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.card--error h1 {
+  margin: 4px 0 8px;
+  font-size: 22px;
+}
+
+.card--error p {
+  color: var(--text-2);
+}
+
+.eyebrow {
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tile {
+  --tile-color: #475569;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--tile-color);
+  color: #ffffff;
+  font-weight: 750;
+  font-size: 16px;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.meta dt {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.meta dd {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.notice {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.notice--warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 650;
+  text-align: center;
+  text-decoration: none;
+}
+
+.button--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.button--primary:hover {
+  background: var(--accent-hover);
+}
+
+.button--secondary {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.integrity {
+  margin-top: 20px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.integrity summary {
+  cursor: pointer;
+}
+
+.integrity code {
+  display: block;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.share__footer {
+  margin-top: 20px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.share__footer a {
+  color: var(--accent);
+}
